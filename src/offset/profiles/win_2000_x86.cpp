@@ -6,6 +6,7 @@
 #include "offset/offset.h"
 #include <map>
 #include <string>
+#include <string_view>
 #define POINTER 0x80000000
 
 #include "win_2000_x86.h"
@@ -35,7 +36,7 @@ enum Type : unsigned int {
     _EPROCESS
 };
 
-static std::map<std::string, std::pair<int, unsigned int>> OFFSET[] = {
+static std::map<std::string_view, std::pair<int, unsigned int>> OFFSET[] = {
     {}, // UNKNOWN
     {
         // _LIST_ENTRY
@@ -158,7 +159,7 @@ static std::map<std::string, std::pair<int, unsigned int>> OFFSET[] = {
     },
 };
 
-std::map<std::string, unsigned int> TRANSLATE = {
+std::map<std::string_view, unsigned int> TRANSLATE = {
     {"UNKNOWN", 0},
     {"_LIST_ENTRY", _LIST_ENTRY},
     {"_UNICODE_STRING", _UNICODE_STRING},

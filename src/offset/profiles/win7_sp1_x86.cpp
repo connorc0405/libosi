@@ -2,6 +2,7 @@
 #include "offset/offset.h"
 #include <map>
 #include <string>
+#include <string_view>
 
 #define POINTER 0x80000000
 
@@ -881,7 +882,7 @@ enum Type : unsigned int {
     _OBJECT_HEADER_QUOTA_INFO,
 };
 
-static std::map<std::string, std::pair<int, unsigned int>> OFFSET[] = {
+static std::map<std::string_view, std::pair<int, unsigned int>> OFFSET[] = {
     {}, // UNKNOWN
     {
         // _WHEA_ERROR_RECORD_HEADER
@@ -10487,7 +10488,7 @@ static std::map<std::string, std::pair<int, unsigned int>> OFFSET[] = {
     },
 };
 
-static std::map<std::string, unsigned int> TRANSLATE = {
+static std::map<std::string_view, unsigned int> TRANSLATE = {
     {"UNKNOWN", 0},
     {"_WHEA_ERROR_RECORD_HEADER", _WHEA_ERROR_RECORD_HEADER},
     {"_MMVAD_SHORT", _MMVAD_SHORT},

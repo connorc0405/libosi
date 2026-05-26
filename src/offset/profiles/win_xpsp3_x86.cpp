@@ -1,6 +1,7 @@
 #include "offset/offset.h"
 #include <map>
 #include <string>
+#include <string_view>
 #define POINTER 0x80000000
 
 #include "win_xpsp3_x86.h"
@@ -579,7 +580,7 @@ enum Type : unsigned int {
     _WMI_LOGGER_MODE,
 };
 
-static std::map<std::string, std::pair<int, unsigned int>> OFFSET[] = {
+static std::map<std::string_view, std::pair<int, unsigned int>> OFFSET[] = {
     {}, // UNKNOWN
     {
         // __unnamed_1649
@@ -6687,7 +6688,7 @@ static std::map<std::string, std::pair<int, unsigned int>> OFFSET[] = {
     },
 };
 
-std::map<std::string, unsigned int> TRANSLATE = {
+std::map<std::string_view, unsigned int> TRANSLATE = {
     {"UNKNOWN", 0},
     {"__unnamed_1649", __unnamed_1649},
     {"_PCI_COMMON_EXTENSION", _PCI_COMMON_EXTENSION},

@@ -10,6 +10,7 @@
 #include "offset/offset.h"
 #include <map>
 #include <string>
+#include <string_view>
 #include <tuple>
 #include <vector>
 
@@ -687,7 +688,7 @@ enum Type : unsigned int {
     edd_info,
 };
 
-static std::map<std::string, std::pair<int, unsigned int>> OFFSET[] = {
+static std::map<std::string_view, std::pair<int, unsigned int>> OFFSET[] = {
     {}, // UNKNOWN
     {
         // struct_d0f2b4697164410eacd1329d14b71338
@@ -7409,7 +7410,7 @@ static std::map<std::string, std::pair<int, unsigned int>> OFFSET[] = {
     },
 };
 
-static std::map<std::string, unsigned int> TRANSLATE = {
+static std::map<std::string_view, unsigned int> TRANSLATE = {
     {"UNKNOWN", 0},
     {"struct_d0f2b4697164410eacd1329d14b71338", struct_d0f2b4697164410eacd1329d14b71338},
     {"irq_chip", irq_chip},
