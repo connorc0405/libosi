@@ -1,5 +1,7 @@
 #include "ProfileHandler.h"
 #include "offset/offset.h"
+#include "rapidjson/error/en.h"
+#include "rapidjson/istreamwrapper.h"
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -104,7 +106,24 @@ const struct StructureType* add_tid_to_map(struct StructureTypeLibrary* tlib,
     return st;
 }
 
-void deserialize_from_json(StructureTypeLibrary* tlib, std::istream& file);
+void deserialize_from_json(StructureTypeLibrary* tlib, std::istream& file)
+{
+
+    rapidjson::IStreamWrapper isw(file);
+
+    ProfileHandler handler;
+    rapidjson::Reader reader;
+    rapidjson::ParseResult result = reader.Parse(isw, handler);
+
+    tlib->OFFSET = std::move(handler.OFFSET);
+    tlib->TRANSLATE = std::move(handler.TRANSLATE);
+    tlib->ENUM = std::move(handler.ENUM);
+
+    if (!result) {
+        std::cerr << "Failed to parse the file at offset " << result.Offset() << ": "
+                  << rapidjson::GetParseError_En(result.Code()) << std::endl;
+    }
+}
 
 struct StructureTypeLibrary* load_type_library(const char* profile)
 {
@@ -197,25 +216,4 @@ bool equal_structure_types(const struct StructureType* st1,
         return false;
     }
     return st1->tid == st2->tid;
-}
-
-#include "rapidjson/error/en.h"
-#include "rapidjson/istreamwrapper.h"
-void deserialize_from_json(StructureTypeLibrary* tlib, std::istream& file)
-{
-
-    rapidjson::IStreamWrapper isw(file);
-
-    ProfileHandler handler;
-    rapidjson::Reader reader;
-    rapidjson::ParseResult result = reader.Parse(isw, handler);
-
-    tlib->OFFSET = std::move(handler.OFFSET);
-    tlib->TRANSLATE = std::move(handler.TRANSLATE);
-    tlib->ENUM = std::move(handler.ENUM);
-
-    if (!result) {
-        std::cerr << "Failed to parse the file at offset " << result.Offset() << ": "
-                  << rapidjson::GetParseError_En(result.Code()) << std::endl;
-    }
 }
