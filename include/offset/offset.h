@@ -1,6 +1,7 @@
 #ifndef __OFFSET_OFFSET_H
 #define __OFFSET_OFFSET_H
 
+#include <istream>
 #include <stdbool.h>
 #include <stdint.h>
 
