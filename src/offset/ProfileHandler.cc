@@ -2,7 +2,7 @@
 
 #include "ProfileHandler.h"
 
-#include "rapidjson/reader.h"
+#include <rapidjson/reader.h>
 
 bool ProfileHandler::Int(int val) { return OnNumber(val); }
 bool ProfileHandler::Uint(unsigned val) { return OnNumber(val); }

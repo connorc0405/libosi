@@ -3,7 +3,7 @@
 #include "offset/offset.h"
 #include "src/offset/ProfileHandler.h"
 #include "gtest/gtest.h"
-#include "rapidjson/istreamwrapper.h"
+#include <rapidjson/istreamwrapper.h>
 
 
 TEST(BasicTest, TypeLibraryLoading)
