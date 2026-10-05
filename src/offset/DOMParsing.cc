@@ -1,0 +1,206 @@
+#include "DOMParsing.h"
+
+#include <cstdint>
+#include <cstdlib>
+#include <iostream>
+#include <istream>
+#include <map>
+#include <string>
+#include <vector>
+
+#include <rapidjson/document.h>
+#include <rapidjson/error/en.h>
+#include <rapidjson/istreamwrapper.h>
+#include <rapidjson/schema.h>
+#include <rapidjson/stringbuffer.h>
+
+// #############################
+/**
+ * DOM-based equivalent of ProfileHandler (SAX). Parses the whole profile into a
+ * rapidjson::Document, then walks it to build TRANSLATE, OFFSET, and ENUM.
+ *
+ * Expected schema (see exampleschema.json):
+ *
+ *   {
+ *       "offsets": {
+ *           struct_name: {
+ *               member_name: { "offset": N, "type": N },
+ *               ...
+ *           } | null,
+ *           ...
+ *       },
+ *       "enums": {                    // optional section
+ *           enum_name: { "<ordinal>": "<enum string>", ... },
+ *           ...
+ *       }
+ *   }
+ *
+ * The input is validated against an embedded JSON Schema (kProfileSchema) while
+ * it is being parsed, using rapidjson::SchemaValidatingReader to populate the
+ * Document. Anything that doesn't conform is rejected as a whole, so the
+ * walking code below can rely on the shape of the data.
+ *
+ * rapidjson's DOM preserves source order of object members, so TRANSLATE
+ * indices and OFFSET positions follow file order, same as the SAX handler.
+ */
+
+namespace {
+
+// JSON Schema for the profile format. Notes:
+//  - "offset" must fit in an int and "type" in an unsigned int, matching the
+//    types stored in OFFSET.
+//  - Enum ordinals are limited to 18 digits so std::stol can't overflow.
+//  - A struct may be null (e.g. "UNKNOWN": null) or an object of members.
+//  - "enums" is optional.
+//  - Enum keys that aren't integers are rejected via `additionalProperties:
+//    {"not": {}}` (i.e. "no schema matches"). The more obvious
+//    `additionalProperties: false` wrongly rejects pattern-matching keys when
+//    combined with patternProperties in RapidJSON 1.1.0.
+const char* const kProfileSchema = R"json(
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "type": "object",
+    "required": ["offsets"],
+    "properties": {
+        "offsets": {
+            "type": "object",
+            "additionalProperties": {
+                "type": ["object", "null"],
+                "additionalProperties": {
+                    "type": "object",
+                    "required": ["offset", "type"],
+                    "properties": {
+                        "offset": {
+                            "type": "integer",
+                            "minimum": -2147483648,
+                            "maximum": 2147483647
+                        },
+                        "type": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 4294967295
+                        }
+                    }
+                }
+            }
+        },
+        "enums": {
+            "type": "object",
+            "additionalProperties": {
+                "type": "object",
+                "patternProperties": {
+                    "^-?[0-9]{1,18}$": { "type": "string" }
+                },
+                "additionalProperties": { "not": {} }
+            }
+        }
+    }
+}
+)json";
+
+const rapidjson::SchemaDocument& GetProfileSchema()
+{
+    // Built once; SchemaDocument is immutable afterwards and safe to share.
+    static const rapidjson::SchemaDocument schema = [] {
+        rapidjson::Document sd;
+        sd.Parse(kProfileSchema);
+        if (sd.HasParseError()) {
+            // The schema is a compile-time constant; this is a programmer error.
+            std::cerr << "Internal error: invalid profile schema at offset "
+                      << sd.GetErrorOffset() << ": "
+                      << rapidjson::GetParseError_En(sd.GetParseError()) << std::endl;
+            std::abort();
+        }
+        return rapidjson::SchemaDocument(sd);
+    }();
+    return schema;
+}
+
+std::string Name(const rapidjson::Value& v)
+{
+    return std::string(v.GetString(), v.GetStringLength());
+}
+
+int64_t AsInt64(const rapidjson::Value& v)
+{
+    return v.IsInt64() ? v.GetInt64() : static_cast<int64_t>(v.GetUint64());
+}
+
+// The schema guarantees the shapes assumed below.
+void ParseOffsets(const rapidjson::Value& offsets, Profile& p)
+{
+    for (const auto& type_entry : offsets.GetObject()) {
+        const std::string type_name = Name(type_entry.name);
+
+        std::map<std::string, std::pair<int, unsigned int>> member_map;
+        if (type_entry.value.IsObject()) {
+            for (const auto& member_entry : type_entry.value.GetObject()) {
+                const auto& m = member_entry.value;
+                member_map.emplace(
+                    Name(member_entry.name),
+                    std::make_pair(static_cast<int>(AsInt64(m["offset"])),
+                                   static_cast<unsigned int>(AsInt64(m["type"]))));
+            }
+        }
+
+        p.TRANSLATE[type_name] = static_cast<unsigned int>(p.OFFSET.size());
+        p.OFFSET.push_back(std::move(member_map));
+    }
+}
+
+void ParseEnums(const rapidjson::Value& enums, Profile& p)
+{
+    for (const auto& enum_entry : enums.GetObject()) {
+        auto& ordinals = p.ENUM[Name(enum_entry.name)];
+        for (const auto& ord_entry : enum_entry.value.GetObject()) {
+            // Ordinal keys are stringified integers, e.g. "2".
+            ordinals.emplace(std::stol(Name(ord_entry.name)), Name(ord_entry.value));
+        }
+    }
+}
+
+} // namespace
+
+// Parses and schema-validates a profile from `in` into `out`. Returns false (and
+// leaves `out` untouched) on a JSON syntax error or a schema violation.
+bool ParseProfile(std::istream& in, Profile& out)
+{
+    rapidjson::IStreamWrapper isw{in};
+    rapidjson::SchemaValidatingReader<rapidjson::kParseDefaultFlags,
+                                      rapidjson::IStreamWrapper,
+                                      rapidjson::UTF8<>>
+        reader(isw, GetProfileSchema());
+
+    rapidjson::Document doc;
+    doc.Populate(reader);
+
+    const rapidjson::ParseResult& result = reader.GetParseResult();
+    if (!reader.IsValid() || !result) {
+        if (!reader.IsValid()) {
+            rapidjson::StringBuffer schema_ptr;
+            rapidjson::StringBuffer doc_ptr;
+            reader.GetInvalidSchemaPointer().StringifyUriFragment(schema_ptr);
+            reader.GetInvalidDocumentPointer().StringifyUriFragment(doc_ptr);
+            std::cerr << "Profile failed schema validation: keyword '"
+                      << reader.GetInvalidSchemaKeyword() << "' at document location '"
+                      << doc_ptr.GetString() << "' (schema location '"
+                      << schema_ptr.GetString() << "')" << std::endl;
+        } else {
+            std::cerr << "JSON parse error at offset " << result.Offset() << ": "
+                      << rapidjson::GetParseError_En(result.Code()) << std::endl;
+        }
+        return false;
+    }
+
+    Profile p;
+    // The schema requires "offsets", so it is guaranteed to exist here.
+    ParseOffsets(doc["offsets"], p);
+
+    auto enums = doc.FindMember("enums");
+    if (enums != doc.MemberEnd()) {
+        ParseEnums(enums->value, p);
+    }
+
+    out = std::move(p);
+    return true;
+}

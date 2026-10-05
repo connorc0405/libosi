@@ -54,6 +54,7 @@ target_include_directories(iohal-static PUBLIC
 
 set(OFFSET_SRCS src/offset/core.cc
     src/offset/ProfileHandler.cc
+    src/offset/DOMParsing.cc
 )
 
 # Compile all the .o files once

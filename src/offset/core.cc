@@ -1,4 +1,4 @@
-#include "ProfileHandler.h"
+#include "DOMParsing.h"
 #include "offset/offset.h"
 #include <cstdio>
 #include <cstdlib>
@@ -10,8 +10,6 @@
 #include <istream>
 #include <libgen.h>
 #include <map>
-#include <rapidjson/error/en.h>
-#include <rapidjson/istreamwrapper.h>
 #include <stdexcept>
 #include <stdint.h>
 #include <vector>
@@ -109,21 +107,14 @@ const struct StructureType* add_tid_to_map(struct StructureTypeLibrary* tlib,
 
 void deserialize_from_json(StructureTypeLibrary* tlib, std::istream& file)
 {
-    rapidjson::IStreamWrapper isw(file);
-
-    ProfileHandler handler;
-    rapidjson::Reader reader;
-    rapidjson::ParseResult result = reader.Parse(isw, handler);
-
-    if (!result) {
-        std::cerr << "Failed to parse the file at offset " << result.Offset() << ": "
-                  << rapidjson::GetParseError_En(result.Code()) << std::endl;
-        throw std::runtime_error("Error!!!");
+    Profile profile;
+    if (!ParseProfile(file, profile)) {
+        throw std::runtime_error("Failed to parse offset profile");
     }
 
-    tlib->OFFSET = std::move(handler.OFFSET);
-    tlib->TRANSLATE = std::move(handler.TRANSLATE);
-    tlib->ENUM = std::move(handler.ENUM);
+    tlib->OFFSET = std::move(profile.OFFSET);
+    tlib->TRANSLATE = std::move(profile.TRANSLATE);
+    tlib->ENUM = std::move(profile.ENUM);
 }
 
 struct StructureTypeLibrary* load_type_library(const char* profile)
