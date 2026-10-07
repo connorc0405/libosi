@@ -91,7 +91,10 @@ const char* const kProfileSchema = R"json(
                 "patternProperties": {
                     "^-?[0-9]{1,18}$": { "type": "string" }
                 },
-                "additionalProperties": { "not": {} }
+                "additionalProperties": {
+                    "not": {},
+                    "$comment": "RapidJSON 1.1.0 has a bug where the above is not correctly enforced"
+                }
             }
         }
     }
