@@ -126,7 +126,10 @@ struct StructureTypeLibrary* load_type_library(const char* profile)
     auto stm = new StructureTypeLibrary();
     stm->profile = std::string(profile);
 
-    std::filesystem::path profile_path{OFFSET_PROFILES_DIR};
+    // LIBOSI_PROFILES_DIR overrides the compiled-in install location.
+    const char* profiles_dir = std::getenv("LIBOSI_PROFILES_DIR");
+    std::filesystem::path profile_path{
+        (profiles_dir && *profiles_dir) ? profiles_dir : OFFSET_PROFILES_DIR};
     profile_path /= profile;
     profile_path += ".json";
 

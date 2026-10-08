@@ -26,5 +26,4 @@ jobs:
         run: | 
           cmake -B build -GNinja -DENABLE_TESTING=ON
           ninja -C build
-          sudo ninja -C build install
           ninja -C build test
