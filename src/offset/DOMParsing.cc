@@ -101,22 +101,19 @@ const char* const kProfileSchema = R"json(
 }
 )json";
 
-const rapidjson::SchemaDocument& GetProfileSchema()
+const rapidjson::SchemaDocument GetProfileSchema()
 {
-    // Built once; SchemaDocument is immutable afterwards and safe to share.
-    static const rapidjson::SchemaDocument schema = [] {
-        rapidjson::Document sd;
-        sd.Parse(kProfileSchema);
-        if (sd.HasParseError()) {
-            // The schema is a compile-time constant; this is a programmer error.
-            std::cerr << "Internal error: invalid profile schema at offset "
-                      << sd.GetErrorOffset() << ": "
-                      << rapidjson::GetParseError_En(sd.GetParseError()) << std::endl;
-            std::abort();
-        }
-        return rapidjson::SchemaDocument(sd);
-    }();
-    return schema;
+    rapidjson::Document sd;
+    sd.Parse(kProfileSchema);
+    if (sd.HasParseError()) {
+        // The schema is a compile-time constant; this is a programmer error.
+        std::cerr << "Internal error: invalid profile schema at offset "
+                    << sd.GetErrorOffset() << ": "
+                    << rapidjson::GetParseError_En(sd.GetParseError()) << std::endl;
+        std::abort();
+    }
+    std::cout << "Here" << std::endl;
+    return rapidjson::SchemaDocument(sd);
 }
 
 std::string Name(const rapidjson::Value& v)
@@ -169,10 +166,11 @@ void ParseEnums(const rapidjson::Value& enums, Profile& p)
 bool ParseProfile(std::istream& in, Profile& out)
 {
     rapidjson::IStreamWrapper isw{in};
+    rapidjson::SchemaDocument document = GetProfileSchema();
     rapidjson::SchemaValidatingReader<rapidjson::kParseDefaultFlags,
                                       rapidjson::IStreamWrapper,
                                       rapidjson::UTF8<>>
-        reader(isw, GetProfileSchema());
+        reader(isw, document);
 
     rapidjson::Document doc;
     doc.Populate(reader);
