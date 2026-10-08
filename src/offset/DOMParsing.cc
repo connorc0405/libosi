@@ -112,7 +112,6 @@ const rapidjson::SchemaDocument GetProfileSchema()
                     << rapidjson::GetParseError_En(sd.GetParseError()) << std::endl;
         std::abort();
     }
-    std::cout << "Here" << std::endl;
     return rapidjson::SchemaDocument(sd);
 }
 
