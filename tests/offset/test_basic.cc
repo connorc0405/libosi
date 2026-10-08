@@ -113,6 +113,7 @@ TEST(BasicTest, ProfileParsing)
 
     Profile profile;
     bool status = ParseProfile(ss, profile);
+    ASSERT_TRUE(status) << "Valid profile was rejected";
 
     // TRANSLATE
     std::map<std::string, unsigned int> TEST_TRANSLATE = {
@@ -150,4 +151,92 @@ TEST(BasicTest, ProfileParsing)
           }
     };
     ASSERT_TRUE(TEST_ENUM == profile.ENUM);
+}
+
+namespace {
+
+// Parses `json` and returns whether it was accepted. On rejection, also checks
+// that `out` was left untouched, as documented in DOMParsing.h.
+bool ParseJson(const std::string& json, Profile& out)
+{
+    std::istringstream ss{json};
+    return ParseProfile(ss, out);
+}
+
+} // namespace
+
+TEST(ProfileSchemaTest, EnumsAreOptional)
+{
+    Profile profile;
+    ASSERT_TRUE(ParseJson(R"({"offsets": {"A": null}})", profile));
+    ASSERT_EQ(profile.TRANSLATE.size(), 1u);
+    ASSERT_EQ(profile.OFFSET.size(), 1u);
+    ASSERT_TRUE(profile.ENUM.empty());
+}
+
+TEST(ProfileSchemaTest, RejectsMemberMissingFields)
+{
+    Profile profile;
+    ASSERT_FALSE(ParseJson(R"({"offsets": {"A": {"m": {"offset": 0}}}})", profile));
+    ASSERT_FALSE(ParseJson(R"({"offsets": {"A": {"m": {"type": 0}}}})", profile));
+    ASSERT_TRUE(profile.OFFSET.empty());
+}
+
+TEST(ProfileSchemaTest, RejectsNonIntegerOffsetOrType)
+{
+    Profile profile;
+    ASSERT_FALSE(ParseJson(R"({"offsets": {"A": {"m": {"offset": "8", "type": 0}}}})", profile));
+    ASSERT_FALSE(ParseJson(R"({"offsets": {"A": {"m": {"offset": 1.5, "type": 0}}}})", profile));
+    ASSERT_FALSE(ParseJson(R"({"offsets": {"A": {"m": {"offset": 0, "type": "8"}}}})", profile));
+    ASSERT_FALSE(ParseJson(R"({"offsets": {"A": {"m": {"offset": 0, "type": 1.5}}}})", profile));
+    ASSERT_TRUE(profile.OFFSET.empty());
+}
+
+TEST(ProfileSchemaTest, RejectsOutOfRangeOffsetOrType)
+{
+    Profile profile;
+    // "offset" must fit in an int.
+    ASSERT_FALSE(ParseJson(R"({"offsets": {"A": {"m": {"offset": 2147483648, "type": 0}}}})", profile));
+    ASSERT_FALSE(ParseJson(R"({"offsets": {"A": {"m": {"offset": -2147483649, "type": 0}}}})", profile));
+    // "type" must fit in an unsigned int.
+    ASSERT_FALSE(ParseJson(R"({"offsets": {"A": {"m": {"offset": 0, "type": 4294967296}}}})", profile));
+    ASSERT_FALSE(ParseJson(R"({"offsets": {"A": {"m": {"offset": 0, "type": -1}}}})", profile));
+    ASSERT_TRUE(profile.OFFSET.empty());
+}
+
+TEST(ProfileSchemaTest, AcceptsBoundaryOffsetAndType)
+{
+    Profile profile;
+    ASSERT_TRUE(ParseJson(
+        R"({"offsets": {"A": {"lo": {"offset": -2147483648, "type": 0},
+                              "hi": {"offset": 2147483647, "type": 4294967295}}}})",
+        profile));
+    ASSERT_EQ(profile.OFFSET.size(), 1u);
+    ASSERT_EQ(profile.OFFSET[0].at("lo").first, -2147483648);
+    ASSERT_EQ(profile.OFFSET[0].at("lo").second, 0);
+    ASSERT_EQ(profile.OFFSET[0].at("hi").first, 2147483647u);
+    ASSERT_EQ(profile.OFFSET[0].at("hi").second, 4294967295u);
+}
+
+TEST(ProfileSchemaTest, RejectsNonObjectStruct)
+{
+    Profile profile;
+    ASSERT_FALSE(ParseJson(R"({"offsets": {"A": 5}})", profile));
+    ASSERT_FALSE(ParseJson(R"({"offsets": {"A": {"m": 5}}})", profile));
+    ASSERT_TRUE(profile.OFFSET.empty());
+}
+
+TEST(ProfileSchemaTest, RejectsNonIntegerEnumKey)
+{
+    Profile profile;
+    ASSERT_FALSE(ParseJson(R"({"offsets": {}, "enums": {"E": {"abc": "1"}}})", profile));
+    ASSERT_FALSE(ParseJson(R"({"offsets": {}, "enums": {"E": {"1.5": "2"}}})", profile));
+    ASSERT_TRUE(profile.ENUM.empty());
+}
+
+TEST(ProfileSchemaTest, RejectsNonStringEnumValue)
+{
+    Profile profile;
+    ASSERT_FALSE(ParseJson(R"({"offsets": {}, "enums": {"E": {"1": 2}}})", profile));
+    ASSERT_TRUE(profile.ENUM.empty());
 }
