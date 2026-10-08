@@ -63,6 +63,7 @@ target_include_directories(offset-obj PRIVATE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/offset>
     ${CMAKE_CURRENT_SOURCE_DIR}/include)
 set_target_properties(offset-obj PROPERTIES POSITION_INDEPENDENT_CODE 1)
+target_link_libraries(offset-obj PRIVATE PkgConfig::RAPIDJSON_PKG)
 
 set(OFFSET_PROFILES_DIR "${CMAKE_INSTALL_PREFIX}/share/offset/profiles")
 target_compile_definitions(offset-obj PRIVATE
@@ -81,8 +82,6 @@ target_include_directories(offset-static PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/offset>
     $<INSTALL_INTERFACE:include>)
-
-target_link_libraries(offset PRIVATE PkgConfig::RAPIDJSON_PKG)
 
 set(OSI_SRCS src/osi/windows/manager.cc
 	        src/osi/windows/kernel_osi.cc
