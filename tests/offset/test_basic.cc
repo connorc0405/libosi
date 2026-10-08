@@ -1,7 +1,7 @@
 #include <sstream>
 
 #include "offset/offset.h"
-#include "src/offset/ProfileHandler.h"
+#include "src/offset/DOMParsing.h"
 #include "gtest/gtest.h"
 #include <rapidjson/istreamwrapper.h>
 
@@ -82,7 +82,7 @@ TEST(BasicTest, BasicWin7x64sp1)
 
 TEST(BasicTest, ProfileParsing)
 {
-    std::string profile = R"(
+    std::string profileJson = R"(
 {
     "offsets": {
         "UNKNOWN": null,
@@ -110,19 +110,18 @@ TEST(BasicTest, ProfileParsing)
 }
 )";
 
-    std::istringstream ss{profile};
+    std::istringstream ss{profileJson};
     rapidjson::IStreamWrapper isw{ss};
 
-    ProfileHandler handler;
-    rapidjson::Reader reader;
-    rapidjson::ParseResult result = reader.Parse(isw, handler);
+    Profile profile;
+    bool status = ParseProfile(ss, profile);
 
     // TRANSLATE
     std::map<std::string, unsigned int> TEST_TRANSLATE = {
         {"UNKNOWN", 0},
         {"_MMVAD_SHORT", 1},
     };
-    ASSERT_TRUE(TEST_TRANSLATE == handler.TRANSLATE);
+    ASSERT_TRUE(TEST_TRANSLATE == profile.TRANSLATE);
 
     //OFFSET
     std::vector<std::map<std::string, std::pair<int, unsigned int>>> TEST_OFFSET = {
@@ -141,7 +140,7 @@ TEST(BasicTest, ProfileParsing)
             }
         }
     };
-    ASSERT_TRUE(TEST_OFFSET == handler.OFFSET);
+    ASSERT_TRUE(TEST_OFFSET == profile.OFFSET);
 
     // ENUM
     std::map<std::string, std::map<long, std::string>> TEST_ENUM = {
@@ -152,5 +151,5 @@ TEST(BasicTest, ProfileParsing)
             }
           }
     };
-    ASSERT_TRUE(TEST_ENUM == handler.ENUM);
+    ASSERT_TRUE(TEST_ENUM == profile.ENUM);
 }
