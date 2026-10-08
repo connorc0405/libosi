@@ -3,7 +3,6 @@
 #include "offset/offset.h"
 #include "src/offset/DOMParsing.h"
 #include "gtest/gtest.h"
-#include <rapidjson/istreamwrapper.h>
 
 
 TEST(BasicTest, TypeLibraryLoading)
@@ -111,7 +110,6 @@ TEST(BasicTest, ProfileParsing)
 )";
 
     std::istringstream ss{profileJson};
-    rapidjson::IStreamWrapper isw{ss};
 
     Profile profile;
     bool status = ParseProfile(ss, profile);
