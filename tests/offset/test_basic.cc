@@ -240,3 +240,10 @@ TEST(ProfileSchemaTest, RejectsNonStringEnumValue)
     ASSERT_FALSE(ParseJson(R"({"offsets": {}, "enums": {"E": {"1": 2}}})", profile));
     ASSERT_TRUE(profile.ENUM.empty());
 }
+
+TEST(ProfileSchemaTest, RejectsNegativeEnumKey)
+{
+    Profile profile;
+    ASSERT_FALSE(ParseJson(R"({"offsets": {}, "enums": {"E": {"-1": "neg"}}})", profile));
+    ASSERT_TRUE(profile.ENUM.empty());
+}

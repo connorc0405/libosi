@@ -89,7 +89,7 @@ const char* const kProfileSchema = R"json(
             "additionalProperties": {
                 "type": "object",
                 "patternProperties": {
-                    "^-?[0-9]{1,18}$": { "type": "string" }
+                    "^[0-9]{1,18}$": { "type": "string" }
                 },
                 "additionalProperties": {
                     "not": {},
