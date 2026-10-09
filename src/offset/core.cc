@@ -26,12 +26,9 @@ struct StructureType {
 
 const struct StructureType* add_tid_to_map(struct StructureTypeLibrary*, uint64_t);
 
-struct StructureTypeLibrary {
+struct StructureTypeLibrary : Profile {
     std::string profile;
     std::map<uint64_t, const struct StructureType*> tid_map;
-    std::vector<std::map<std::string, std::pair<int, unsigned int>>> OFFSET;
-    std::map<std::string, unsigned int> TRANSLATE;
-    std::map<std::string, std::map<long, std::string>> ENUM;
 
     uint64_t translate(const char* tname)
     {
