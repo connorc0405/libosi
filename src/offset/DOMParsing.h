@@ -16,8 +16,13 @@ struct Profile {
 };
 
 /**
- * Parses `in` with RapidJSON's DOM API, validating it against the embedded profile
+ * @brief Populate an OS profile using a JSON document.
+ *
+ * Parses `in`, validating it against a profile
  * schema. Returns false (after logging the reason to stderr) on a syntax error or
  * schema violation; `out` is left untouched in that case.
+ *
+ * @param in the stream containing the JSON document.
+ * @param out the profile to be filled in.
  */
 bool ParseProfile(std::istream& in, Profile& out);

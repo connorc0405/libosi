@@ -14,39 +14,38 @@
 #include <rapidjson/schema.h>
 #include <rapidjson/stringbuffer.h>
 
-// #############################
-/**
- * DOM-based equivalent of ProfileHandler (SAX). Parses the whole profile into a
- * rapidjson::Document, then walks it to build TRANSLATE, OFFSET, and ENUM.
- *
- * Expected schema
- *
- *   {
- *       "offsets": {
- *           struct_name: {
- *               member_name: { "offset": N, "type": N },
- *               ...
- *           } | null,
- *           ...
- *       },
- *       "enums": {                    // optional section
- *           enum_name: { "<ordinal>": "<enum string>", ... },
- *           ...
- *       }
- *   }
- *
- * The input is validated against an embedded JSON Schema (profileSchema) while
- * it is being parsed, using rapidjson::SchemaValidatingReader to populate the
- * Document. Anything that doesn't conform is rejected as a whole, so the
- * walking code below can rely on the shape of the data.
- *
- * rapidjson's DOM preserves source order of object members, so TRANSLATE
- * indices and OFFSET positions follow file order, same as the SAX handler.
- */
 
 namespace
 {
 
+/**
+ * Example:
+ * {
+ *     "offsets": {
+ *         "UNKNOWN": null,
+ *         "_MMVAD_SHORT": {
+ *             "u1": {
+ *                 "offset": 0,
+ *                 "type": 406
+ *             },
+ *             "LeftChild": {
+ *                 "offset": 8,
+ *                 "type": 2147484421
+ *             },
+ *             "StartingVpn": {
+ *                 "offset": 24,
+ *                 "type": 0
+ *             }
+ *         }
+ *     },
+ *     "enums": { // this key is optional
+ *         "ObTypeIndexTable": {
+ *             "2": "Type",
+ *             "3": "Directory"
+ *         }
+ *     }
+ * }
+ */
 const char* const profileSchema = R"json(
 {
     "$schema": "http://json-schema.org/draft-04/schema#",
