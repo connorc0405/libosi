@@ -44,7 +44,8 @@
  * indices and OFFSET positions follow file order, same as the SAX handler.
  */
 
-namespace {
+namespace
+{
 
 // JSON Schema for the profile format. Notes:
 //  - "offset" must fit in an int and "type" in an unsigned int, matching the
@@ -108,8 +109,8 @@ const rapidjson::SchemaDocument GetProfileSchema()
     if (sd.HasParseError()) {
         // The schema is a compile-time constant; this is a programmer error.
         std::cerr << "Internal error: invalid profile schema at offset "
-                    << sd.GetErrorOffset() << ": "
-                    << rapidjson::GetParseError_En(sd.GetParseError()) << std::endl;
+                  << sd.GetErrorOffset() << ": "
+                  << rapidjson::GetParseError_En(sd.GetParseError()) << std::endl;
         std::abort();
     }
     return rapidjson::SchemaDocument(sd);
@@ -167,8 +168,7 @@ bool ParseProfile(std::istream& in, Profile& out)
     rapidjson::IStreamWrapper isw{in};
     rapidjson::SchemaDocument document = GetProfileSchema();
     rapidjson::SchemaValidatingReader<rapidjson::kParseDefaultFlags,
-                                      rapidjson::IStreamWrapper,
-                                      rapidjson::UTF8<>>
+                                      rapidjson::IStreamWrapper, rapidjson::UTF8<>>
         reader(isw, document);
 
     rapidjson::Document doc;
