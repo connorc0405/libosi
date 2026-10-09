@@ -19,7 +19,7 @@
  * DOM-based equivalent of ProfileHandler (SAX). Parses the whole profile into a
  * rapidjson::Document, then walks it to build TRANSLATE, OFFSET, and ENUM.
  *
- * Expected schema (see exampleschema.json):
+ * Expected schema
  *
  *   {
  *       "offsets": {
@@ -35,7 +35,7 @@
  *       }
  *   }
  *
- * The input is validated against an embedded JSON Schema (kProfileSchema) while
+ * The input is validated against an embedded JSON Schema (profileSchema) while
  * it is being parsed, using rapidjson::SchemaValidatingReader to populate the
  * Document. Anything that doesn't conform is rejected as a whole, so the
  * walking code below can rely on the shape of the data.
@@ -47,17 +47,7 @@
 namespace
 {
 
-// JSON Schema for the profile format. Notes:
-//  - "offset" must fit in an int and "type" in an unsigned int, matching the
-//    types stored in OFFSET.
-//  - Enum ordinals are limited to 18 digits so std::stol can't overflow.
-//  - A struct may be null (e.g. "UNKNOWN": null) or an object of members.
-//  - "enums" is optional.
-//  - Enum keys that aren't integers are rejected via `additionalProperties:
-//    {"not": {}}` (i.e. "no schema matches"). The more obvious
-//    `additionalProperties: false` wrongly rejects pattern-matching keys when
-//    combined with patternProperties in RapidJSON 1.1.0.
-const char* const kProfileSchema = R"json(
+const char* const profileSchema = R"json(
 {
     "$schema": "http://json-schema.org/draft-04/schema#",
     "type": "object",
@@ -105,7 +95,7 @@ const char* const kProfileSchema = R"json(
 const rapidjson::SchemaDocument GetProfileSchema()
 {
     rapidjson::Document sd;
-    sd.Parse(kProfileSchema);
+    sd.Parse(profileSchema);
     if (sd.HasParseError()) {
         // The schema is a compile-time constant; this is a programmer error.
         std::cerr << "Internal error: invalid profile schema at offset "
@@ -161,8 +151,6 @@ void ParseEnums(const rapidjson::Value& enums, Profile& p)
 
 } // namespace
 
-// Parses and schema-validates a profile from `in` into `out`. Returns false (and
-// leaves `out` untouched) on a JSON syntax error or a schema violation.
 bool ParseProfile(std::istream& in, Profile& out)
 {
     rapidjson::IStreamWrapper isw{in};
